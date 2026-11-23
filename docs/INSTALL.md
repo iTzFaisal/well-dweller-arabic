@@ -2,7 +2,7 @@
 
 ## العربية
 
-تعريب كامل للعبة **Well Dweller** على محاكي **Eden**. يظهر التعريب في قائمة اللغات باسم **العربية** بدلاً من الإسبانية.
+تعريب كامل للعبة **Well Dweller** على محاكي **Eden**. يحل التعريب محل اللغة الإسبانية: اختر **Español** من قائمة اللغات لتظهر اللعبة بالعربية.
 
 ### المتطلبات
 - اللعبة مضافة إلى Eden وتعمل، **مع تحديث 1.0.3**.
@@ -13,7 +13,7 @@
 2. شغّل `Arabic-iTzFaisal.exe` بنقرة مزدوجة.
    سيعثر البرنامج تلقائياً على Eden وعلى اللعبة، ثم يثبّت التعريب خلال ثوانٍ.
 3. في Eden: انقر بزر الفأرة الأيمن على اللعبة ← Properties ← Add-Ons، وتأكد أن **Arabic-iTzFaisal** مفعّل.
-4. داخل اللعبة: الخيارات ← اللغة ← **العربية**.
+4. داخل اللعبة: Options ← Language ← **Español** (الإسبانية هي واجهة التعريب العربي).
 
 > لماذا برنامج تثبيت وليس مجلداً جاهزاً؟ لأن ملفات اللعبة محمية بحقوق النشر ولا يجوز توزيعها.
 > البرنامج لا يحتوي على أي ملف من ملفات اللعبة، بل يبني التعريب من نسختك أنت.
@@ -25,8 +25,8 @@
 
 ## English
 
-Full Arabic translation of **Well Dweller** for the **Eden** emulator. It appears as **العربية** in the
-language menu, replacing Spanish.
+Full Arabic translation of **Well Dweller** for the **Eden** emulator. It replaces Spanish: choose
+**Español** in the language menu to play in Arabic.
 
 ### Requirements
 - The game added to Eden and working, **with update 1.0.3**.
@@ -36,7 +36,7 @@ language menu, replacing Spanish.
 1. Download `Arabic-iTzFaisal.zip` and extract it.
 2. Double-click `Arabic-iTzFaisal.exe`. It finds Eden and your game automatically and installs the mod in a few seconds.
 3. In Eden: right-click the game → Properties → Add-Ons → make sure **Arabic-iTzFaisal** is checked.
-4. In game: Options → Language → **العربية**.
+4. In game: Options → Language → **Español** (Spanish is the slot that holds the Arabic translation).
 
 > **Why an installer and not a ready-made mod folder?** The game's files are copyrighted and can't be
 > redistributed. The program contains no game files; it builds the mod from your own copy.

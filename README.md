@@ -1,15 +1,15 @@
 # Arabic-iTzFaisal — Well Dweller Arabic Translation / تعريب ساكن البئر
 
 A fan Arabic translation of **Well Dweller** (Nintendo Switch, v1.0.3) for the Eden emulator.
-It replaces Spanish in the game's language menu with full Arabic. Letters join correctly, text runs
+It replaces Spanish with full Arabic: pick **Español** in the game's language menu to play in Arabic. Letters join correctly, text runs
 right-to-left, and the fonts are made for Arabic.
 
-تعريب كامل للعبة **Well Dweller** على محاكي Eden، يحل محل اللغة الإسبانية في قائمة اللغات.
+تعريب كامل للعبة **Well Dweller** على محاكي Eden، يحل محل اللغة الإسبانية، فاختر **Español** من قائمة اللغات لتظهر اللعبة بالعربية.
 
 ### Quick install / التثبيت السريع
 1. Download **`Arabic-iTzFaisal.zip`** from the [latest release](../../releases/latest) and extract it.
 2. Double-click **`Arabic-iTzFaisal.exe`**. It finds Eden and your game and installs the mod.
-3. Turn on **Arabic-iTzFaisal** in Eden (Properties → Add-Ons), then in game: Options → Language → **العربية**.
+3. Turn on **Arabic-iTzFaisal** in Eden (Properties → Add-Ons), then in game: Options → Language → **Español**. Spanish is the slot that holds the Arabic translation.
 
 Full guide: [INSTALL.md](docs/INSTALL.md) / [دليل التثبيت](docs/INSTALL.md#العربية)
 

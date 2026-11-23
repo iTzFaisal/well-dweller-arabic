@@ -252,7 +252,7 @@ def main():
 
         print(f'\nDone! Installed to:\n  {out}\n')
         print(f'1. In Eden, right-click Well Dweller > Properties > Add-Ons: make sure "{MOD_NAME}" is checked.')
-        print('2. Start the game: Options > Language > العربية')
+        print('2. Start the game: Options > Language > Espanol')
         ok = True
     except Fail as e:
         print(f'\nERROR: {e}')

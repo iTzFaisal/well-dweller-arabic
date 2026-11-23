@@ -11,8 +11,8 @@
 
 ### التثبيت
 
-1. حمّل `Arabic-iTzFaisal.zip` وفك الضغط.
-2. شغّل `Arabic-iTzFaisal.exe` بنقرة مزدوجة.
+1. حمّل `Well-Dweller-Arabic.zip` وفك الضغط.
+2. شغّل `Well-Dweller-Arabic.exe` بنقرة مزدوجة.
    سيعثر البرنامج تلقائياً على Eden وعلى اللعبة، ثم يثبّت التعريب خلال ثوانٍ.
 3. في Eden: انقر بزر الفأرة الأيمن على اللعبة ← Properties ← Add-Ons، وتأكد أن **Arabic-iTzFaisal** مفعّل.
 4. داخل اللعبة: Options ← Language ← **Español** (الإسبانية هي واجهة التعريب العربي).
@@ -34,8 +34,8 @@ Full Arabic translation of **Well Dweller** for the **Eden** emulator. It replac
 
 ### Install
 
-1. Download `Arabic-iTzFaisal.zip` and extract it.
-2. Double-click `Arabic-iTzFaisal.exe`. It finds Eden and your game automatically and installs the mod in a few seconds.
+1. Download `Well-Dweller-Arabic.zip` and extract it.
+2. Double-click `Well-Dweller-Arabic.exe`. It finds Eden and your game automatically and installs the mod in a few seconds.
 3. In Eden: right-click the game → Properties → Add-Ons → make sure **Arabic-iTzFaisal** is checked.
 4. In game: Options → Language → **Español** (Spanish is the slot that holds the Arabic translation).
 

@@ -1,7 +1,7 @@
 # AGENTS.md
 
 This repo is a fan Arabic translation mod for Well Dweller (Switch, title `0100217023F6C000`, update **v1.0.3**) on the Eden emulator.
-The Arabic text replaces the game's **Spanish** slot. Users run `Arabic-iTzFaisal.exe`, which installs the mod to `<emu>/load/0100217023F6C000/Arabic-iTzFaisal/romfs/`.
+The Arabic text replaces the game's **Spanish** slot. Users run `Well-Dweller-Arabic.exe`, which installs the mod to `<emu>/load/0100217023F6C000/Arabic-iTzFaisal/romfs/`.
 
 ## Hard rules
 - Never commit or ship game data. That covers `game.win`, `translations.ini`, NSP/NCA files, keys, and any file containing the original English or other-language text.
@@ -30,7 +30,7 @@ The Arabic text replaces the game's **Spanish** slot. Users run `Arabic-iTzFaisa
 - Full rebuild: `uv run tools/build.py --utmt <UndertaleModCli.exe> [--work DIR]`. It writes `patches/game.win.bsdiff`, prints both SHA-256 values, and puts a test mod in `work/mod/`. It takes about 1.5 minutes; bsdiff accounts for most of that.
 - Validate the translation: `python tools/validate.py <original translations.ini>`. It checks `[tags]` and `$`/`@`/`~` counts against English and rejects tashkeel, tatweel, Arabic-Indic digits and characters the fonts lack.
 - Preview rendering: `uv run tools/preview.py work fnt_default out.png "نص"`.
-- Release: `uv run tools/build_release.py` creates `dist/Arabic-iTzFaisal.exe` and `.zip` (PyInstaller one-file; the patch and `arabic.json` are bundled via `sys._MEIPASS`). Verify by unzipping to an empty folder and running the exe.
+- Release: `uv run tools/build_release.py` creates `dist/Well-Dweller-Arabic.exe` and `.zip` (PyInstaller one-file; the patch and `arabic.json` are bundled via `sys._MEIPASS`). Verify by unzipping to an empty folder and running the exe.
 
 ## Translation conventions
 - Follow `translation/TRANSLATION_GUIDE.md` (glossary + hard rules).

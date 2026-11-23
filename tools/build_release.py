@@ -1,4 +1,4 @@
-"""Build the user-facing release: dist/Arabic-iTzFaisal.zip
+"""Build the user-facing release: dist/Well-Dweller-Arabic.zip
 
   uv run tools/build_release.py
 
@@ -14,7 +14,7 @@ import zipfile
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
-NAME = 'Arabic-iTzFaisal'
+NAME = 'Well-Dweller-Arabic'  # release file names; the Eden mod name is MOD_NAME in installer/install.py
 EXTRAS = [
     ('docs/INSTALL.md', 'README.md'),
     ('LICENSE', 'LICENSE.txt'),

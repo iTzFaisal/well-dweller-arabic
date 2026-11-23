@@ -8,14 +8,14 @@ right-to-left, and the fonts are made for Arabic.
 
 ### Quick install / التثبيت السريع
 
-1. Download **`Arabic-iTzFaisal.zip`** from the [latest release](../../releases/latest) and extract it.
-2. Double-click **`Arabic-iTzFaisal.exe`**. It finds Eden and your game and installs the mod.
+1. Download **`Well-Dweller-Arabic.zip`** from the [latest release](../../releases/latest) and extract it.
+2. Double-click **`Well-Dweller-Arabic.exe`**. It finds Eden and your game and installs the mod.
 3. Turn on **Arabic-iTzFaisal** in Eden (Properties → Add-Ons), then in game: Options → Language → **Español**. Spanish is the slot that holds the Arabic translation.
 
 <div dir="rtl">
 
-1. حمّل الملف **`Arabic-iTzFaisal.zip`** من [آخر إصدار](../../releases/latest) وفك الضغط عنه.
-2. شغّل **`Arabic-iTzFaisal.exe`** بنقرة مزدوجة، وسيعثر تلقائياً على Eden وعلى اللعبة ثم يثبّت التعريب.
+1. حمّل الملف **`Well-Dweller-Arabic.zip`** من [آخر إصدار](../../releases/latest) وفك الضغط عنه.
+2. شغّل **`Well-Dweller-Arabic.exe`** بنقرة مزدوجة، وسيعثر تلقائياً على Eden وعلى اللعبة ثم يثبّت التعريب.
 3. في Eden: انقر بزر الفأرة الأيمن على اللعبة ← Properties ← Add-Ons وفعّل **Arabic-iTzFaisal**، ثم داخل اللعبة: Options ← Language ← **Español** (الإسبانية هي واجهة التعريب العربي).
 
 </div>
@@ -31,7 +31,7 @@ Full guide: [INSTALL.md](docs/INSTALL.md) / [دليل التثبيت](docs/INSTA
 | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `translation/arabic.json` | The Arabic text: 1,493 lines covering dialogue, menus, items and story pages                                                                      |
 | `patches/game.win.bsdiff` | Binary patch that adds Arabic glyphs to the game's fonts                                                                                          |
-| `installer/`              | Installer, released as `Arabic-iTzFaisal.exe`: finds Eden and the game (game folders or NAND), verifies v1.0.3, then patches and installs the mod |
+| `installer/`              | Installer, released as `Well-Dweller-Arabic.exe`: finds Eden and the game (game folders or NAND), verifies v1.0.3, then patches and installs the mod |
 | `tools/`                  | Maintainer build pipeline (font rendering, UndertaleModTool scripts, validation, release)                                                         |
 | `fonts/`                  | Noto Naskh Arabic and Lalezar (SIL OFL 1.1)                                                                                                       |
 | `docs/`                   | [INSTALL.md](docs/INSTALL.md), [BUILDING.md](docs/BUILDING.md)                                                                                    |
@@ -39,7 +39,7 @@ Full guide: [INSTALL.md](docs/INSTALL.md) / [دليل التثبيت](docs/INSTA
 ## Project layout
 
 ```
-installer/      install.py (released as Arabic-iTzFaisal.exe), switchfs.py (NSP/NAND/NCA/RomFS reader), translations.py
+installer/      install.py (released as Well-Dweller-Arabic.exe), switchfs.py (NSP/NAND/NCA/RomFS reader), translations.py
 patches/        game.win.bsdiff
 translation/    arabic.json, TRANSLATION_GUIDE.md
 tools/          build.py, build_glyphs.py, preview.py, validate.py, build_release.py, utmt/*.csx, third_party/

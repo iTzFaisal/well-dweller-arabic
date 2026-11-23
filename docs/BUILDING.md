@@ -56,6 +56,6 @@ uv run tools/preview.py work fnt_default preview.png "كان يا ما كان"
 ```
 uv run tools/build_release.py
 ```
-This builds `dist/Arabic-iTzFaisal.exe` (PyInstaller one-file build, with the patch and text bundled inside) and
-`dist/Arabic-iTzFaisal.zip` (the exe, readme and licenses) plus its `.sha256`.
+This builds `dist/Well-Dweller-Arabic.exe` (PyInstaller one-file build, with the patch and text bundled inside) and
+`dist/Well-Dweller-Arabic.zip` (the exe, readme and licenses) plus its `.sha256`.
 Attach the zip to a GitHub release. Test it first by unzipping it to an empty folder and double-clicking it.

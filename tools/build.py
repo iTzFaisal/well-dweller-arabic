@@ -4,7 +4,7 @@
 # ///
 """Full maintainer build: game files -> modded game.win -> patches/game.win.bsdiff.
 
-  uv run tools/build.py --utmt path/to/UndertaleModCli.exe BASE.nsp UPDATE.nsp [--keys prod.keys]
+  uv run tools/build.py --utmt path/to/UndertaleModCli.exe [BASE.nsp UPDATE.nsp] [--keys prod.keys]   (auto-finds the game like the installer)
   uv run tools/build.py --utmt path/to/UndertaleModCli.exe --romfs path/to/romfs
 
 Steps: extract game.win + translations.ini -> export font atlases (UTMT) -> render Arabic glyphs
@@ -54,9 +54,13 @@ def main():
         for n in ('game.win', 'translations.ini'):
             shutil.copy(Path(args.romfs) / n, src / n)
     else:
-        base, upd = install.classify_nsps([Path(p) for p in args.nsps])
-        keys = Path(args.keys) if args.keys else install.eden_dir() / 'keys' / 'prod.keys'
-        install.extract_from_nsps(base, upd, keys, src)
+        emus = install.emulator_dirs()
+        emu = emus[0] if emus else None
+        keys = Path(args.keys) if args.keys else emu / 'keys' / 'prod.keys'
+        base, upds = install.find_game(emu, keys, [(Path(p), True) for p in args.nsps], print)
+        if not base or not upds:
+            sys.exit('base game or update not found')
+        install.extract_v103(base, upds, src, print)
 
     win = src / 'game.win'
     if install.sha256_file(win) != install.GAME_WIN_SHA256:

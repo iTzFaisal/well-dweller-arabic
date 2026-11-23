@@ -28,7 +28,7 @@ Players don't need this. See [INSTALL.md](INSTALL.md).
 
 ## Full rebuild
 ```
-uv run tools/build.py --utmt C:\path\UndertaleModCli.exe BASE.nsp UPDATE.nsp
+uv run tools/build.py --utmt C:\path\UndertaleModCli.exe    # finds the game like the installer (or pass NSP paths)
 ```
 The build does the following:
 1. Extracts `game.win` and `translations.ini` to `work/source`. `installer/switchfs.py` handles
@@ -54,7 +54,8 @@ uv run tools/preview.py work fnt_default preview.png "كان يا ما كان"
 
 ## Release
 ```
-python tools/build_release.py v1.0.0
+uv run tools/build_release.py
 ```
-This creates `dist/WellDweller-Arabic-v1.0.0.zip` (installer, patch, text, licenses) and its `.sha256`.
-Attach both to a GitHub release.
+This builds `dist/Arabic-iTzFaisal.exe` (PyInstaller one-file build, with the patch and text bundled inside) and
+`dist/Arabic-iTzFaisal.zip` (the exe, readme and licenses) plus its `.sha256`.
+Attach the zip to a GitHub release. Test it first by unzipping it to an empty folder and double-clicking it.

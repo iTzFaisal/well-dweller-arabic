@@ -2,45 +2,53 @@
 # requires-python = ">=3.10"
 # dependencies = ["pycryptodome>=3.20", "cryptography>=42", "bsdiff4>=1.2"]
 # ///
-"""Well Dweller Arabic translation - installer.
+"""Arabic-iTzFaisal - Well Dweller Arabic translation installer.
 
-Builds the Eden/yuzu-style LayeredFS mod from YOUR OWN copy of the game:
-the game files are never distributed, only a binary patch + the Arabic text.
+Double-click it. It finds Eden (or another yuzu-family emulator), your keys and your copy of
+Well Dweller (game folders or the emulator's NAND), then installs the mod "Arabic-iTzFaisal".
+No game files are distributed: the mod is built from your own copy.
 
-Usage (any one of):
-  uv run install.py                                  # auto: finds the NSPs next to this script / in the current folder
-  uv run install.py BASE.nsp UPDATE.nsp              # explicit NSPs (order does not matter)
-  uv run install.py --romfs "path/to/dumped/romfs"   # a RomFS dump made with Eden (Dump RomFS -> Full)
-Options:
-  --keys prod.keys      default: the emulator's keys (%APPDATA%/eden/keys/prod.keys)
-  --out DIR             default: %APPDATA%/eden/load/0100217023F6C000/Arabic
+Advanced:
+  install.py [NSP or folder ...]     extra places to look for the base game / v1.0.3 update NSPs
+  --romfs DIR      use a RomFS dumped with Eden (right-click > Dump RomFS > Full) instead
+  --emu-dir DIR    emulator user folder (default: auto, e.g. %APPDATA%\\eden or a portable "user" folder)
+  --keys FILE      prod.keys (default: <emulator>/keys/prod.keys)
+  --out DIR        mod folder (default: <emulator>/load/0100217023F6C000/Arabic-iTzFaisal)
 """
 import argparse
 import hashlib
 import json
 import os
+import re
 import sys
 import tempfile
 from pathlib import Path
 
-HERE = Path(__file__).resolve().parent
-sys.path.insert(0, str(HERE))
+FROZEN = getattr(sys, 'frozen', False)
+HERE = Path(sys.executable if FROZEN else __file__).resolve().parent
+BUNDLE = Path(getattr(sys, '_MEIPASS', HERE))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 import translations  # noqa: E402
 
+MOD_NAME = 'Arabic-iTzFaisal'
 TITLE_ID = '0100217023F6C000'
-UPDATE_ID = '0100217023F6C800'
+TITLE_ID_INT = int(TITLE_ID, 16)
 GAME_VERSION = '1.0.3'
-# SHA-256 of the v1.0.3 game.win and of the patched result
 GAME_WIN_SHA256 = '711dc2c9543eade97b77ac93cd50709f28f5568bbf54ea08244f8c476ba48604'
 PATCHED_WIN_SHA256 = 'f72ddc32515d39782fe06a8d4da5b54f3f836986bfbd92b48671370525ef9b8e'
+EMULATORS = ['eden', 'citron', 'sudachi', 'suyu', 'torzu', 'yuzu']
 
 
-def find_data(rel):
-    for base in (HERE, HERE.parent):
+class Fail(Exception):
+    pass
+
+
+def resource(rel):
+    for base in (BUNDLE, HERE, HERE.parent, Path(__file__).resolve().parent.parent):
         p = base / rel
         if p.exists():
             return p
-    sys.exit(f'ERROR: data file "{rel}" not found next to the installer.')
+    raise Fail(f'data file "{rel}" is missing - re-download the mod.')
 
 
 def sha256_file(path):
@@ -51,39 +59,148 @@ def sha256_file(path):
     return h.hexdigest()
 
 
-def eden_dir():
-    appdata = os.environ.get('APPDATA')
-    if appdata:
-        return Path(appdata) / 'eden'
-    return Path.home() / '.local' / 'share' / 'eden'
+# ------------------------------------------------------------------ emulator discovery
+def emulator_dirs(explicit=None):
+    cands = []
+    if explicit:
+        cands.append(Path(explicit))
+    cands += [HERE / 'user', Path.cwd() / 'user']               # portable installs
+    base = os.environ.get('APPDATA')
+    roots = [Path(base)] if base else []
+    roots += [Path.home() / '.local' / 'share', Path.home() / 'Library' / 'Application Support']
+    for root in roots:
+        cands += [root / e for e in EMULATORS]
+    seen, out = set(), []
+    for c in cands:
+        if (c / 'keys' / 'prod.keys').exists() and c.resolve() not in seen:
+            seen.add(c.resolve())
+            out.append(c)
+    return out
 
 
-def classify_nsps(paths):
-    """Return (base, update) by looking at the ticket names inside each NSP."""
-    from switchfs import Pfs0
-    base = upd = None
-    for p in paths:
-        names = ' '.join(Pfs0(p).files).lower()
-        if UPDATE_ID.lower() in names:
-            upd = p
-        elif TITLE_ID.lower() in names:
-            base = p
-    return base, upd
+def game_dirs(emu):
+    cfg = emu / 'config' / 'qt-config.ini'
+    dirs = []
+    if cfg.exists():
+        text = cfg.read_text(encoding='utf-8', errors='replace')
+        deep = dict(re.findall(r'^Paths\\gamedirs\\(\d+)\\deep_scan=(\w+)', text, re.M))
+        for idx, path in re.findall(r'^Paths\\gamedirs\\(\d+)\\path=(.+)$', text, re.M):
+            path = path.strip().strip('"')
+            if path in ('SDMC', 'UserNAND', 'SysNAND'):
+                continue
+            dirs.append((Path(path), deep.get(idx, 'false') == 'true'))
+    return dirs
 
 
-def extract_from_nsps(base, update, keys_path, workdir):
-    from switchfs import load_keys, open_patched_romfs
-    print(f'Keys:   {keys_path}')
-    print(f'Base:   {base}')
-    print(f'Update: {update}')
-    keys = load_keys(keys_path)
+def iter_nsps(places):
+    seen = set()
+    for place, deep in places:
+        if place.is_file() and place.suffix.lower() == '.nsp':
+            files = [place]
+        elif place.is_dir():
+            files = place.rglob('*.nsp') if deep else place.glob('*.nsp')
+        else:
+            continue
+        for f in files:
+            try:
+                key = f.resolve()
+            except OSError:
+                continue
+            if key not in seen:
+                seen.add(key)
+                yield f
+
+
+def iter_nand_ncas(emu):
+    reg = emu / 'nand' / 'user' / 'Contents' / 'registered'
+    if reg.is_dir():
+        for p in reg.rglob('*.nca'):
+            if not p.name.endswith('.cnmt.nca'):
+                yield p
+
+
+def find_game(emu, keys_path, extra_places, log):
+    """Return (base_nca, [update_ncas]) for Well Dweller, with title keys applied."""
+    import switchfs
+    keys = switchfs.load_keys(keys_path)
     if 'header_key' not in keys:
-        sys.exit('ERROR: prod.keys has no header_key - use the keys dumped from your console.')
-    romfs = open_patched_romfs(str(base), str(update), keys)
-    for name in ('game.win', 'translations.ini'):
-        print(f'Extracting {name} ...')
-        romfs.extract(name, workdir / name)
-    return workdir
+        raise Fail(f'{keys_path} has no header_key - dump fresh keys from your console.')
+    key_files = [keys_path.parent / 'title.keys', keys_path.parent / 'title.keys_autogenerated']
+    title_keys = switchfs.load_title_keys(key_files, keys)
+
+    base, updates = None, []
+
+    def consider(nca, *tables):
+        nonlocal base
+        if nca.title_id != TITLE_ID_INT or nca.content_type != switchfs.Nca.CONTENT_PROGRAM:
+            return
+        if not switchfs.apply_title_key(nca, *tables, title_keys):
+            log(f'  (found Well Dweller data but no working title key for {nca.rights_id})')
+            return
+        if nca.is_update:
+            updates.append(nca)
+        elif base is None:
+            base = nca
+
+    places = list(extra_places) + [(HERE, False), (Path.cwd(), False)]
+    if emu:
+        places += game_dirs(emu)
+    for nsp in iter_nsps(places):
+        try:
+            for nca, tik_keys in switchfs.program_ncas_in_nsp(str(nsp), keys):
+                before = (base, len(updates))
+                consider(nca, tik_keys)
+                if (base, len(updates)) != before:
+                    log(f'  found: {nsp}')
+        except Exception:
+            continue
+    if emu:
+        for path in iter_nand_ncas(emu):
+            try:
+                nca = switchfs.Nca(switchfs.MultiPartFile(str(path)), keys)
+            except Exception:
+                continue
+            before = (base, len(updates))
+            consider(nca)
+            if (base, len(updates)) != before:
+                log(f'  found in emulator NAND: {path.name}')
+    return base, updates
+
+
+def extract_v103(base, updates, workdir, log):
+    import switchfs
+    for upd in updates:
+        romfs = switchfs.open_patched_romfs_ncas(base, upd)
+        log('Extracting game.win ...')
+        romfs.extract('game.win', workdir / 'game.win')
+        if sha256_file(workdir / 'game.win') == GAME_WIN_SHA256:
+            romfs.extract('translations.ini', workdir / 'translations.ini')
+            return workdir
+        log('  (that update is not v1.0.3, trying the next one)')
+    raise Fail(f'update v{GAME_VERSION} was not found. Install the v{GAME_VERSION} update in the emulator.')
+
+
+# ------------------------------------------------------------------ main
+def build_mod(src, out, log):
+    win, ini = src / 'game.win', src / 'translations.ini'
+    for p in (win, ini):
+        if not p.exists():
+            raise Fail(f'{p} not found.')
+    log('Checking game version ...')
+    if sha256_file(win) != GAME_WIN_SHA256:
+        raise Fail(f'game.win is not from Well Dweller v{GAME_VERSION}.')
+    import bsdiff4
+    log('Adding Arabic fonts ...')
+    new_win = bsdiff4.patch(win.read_bytes(), resource('patches/game.win.bsdiff').read_bytes())
+    if hashlib.sha256(new_win).hexdigest() != PATCHED_WIN_SHA256:
+        raise Fail('patched game.win failed verification.')
+    log('Adding Arabic text ...')
+    arabic = json.loads(resource('translation/arabic.json').read_text(encoding='utf-8'))
+    new_ini = translations.apply_arabic(ini.read_bytes(), arabic)
+    dst = out / 'romfs'
+    dst.mkdir(parents=True, exist_ok=True)
+    (dst / 'game.win').write_bytes(new_win)
+    (dst / 'translations.ini').write_bytes(new_ini)
 
 
 def main():
@@ -92,61 +209,59 @@ def main():
             stream.reconfigure(encoding='utf-8', errors='replace')
         except (AttributeError, ValueError):
             pass
-    ap = argparse.ArgumentParser(description='Install the Well Dweller Arabic translation (Eden LayeredFS mod).')
-    ap.add_argument('nsps', nargs='*', help='base game NSP and v1.0.3 update NSP')
-    ap.add_argument('--romfs', help='folder with an already dumped RomFS (contains game.win and translations.ini)')
-    ap.add_argument('--keys', help='prod.keys (default: Eden keys)')
-    ap.add_argument('--out', help='mod output folder (default: Eden load/<title id>/Arabic)')
+    ap = argparse.ArgumentParser(description=f'Install {MOD_NAME} (Well Dweller Arabic translation).')
+    ap.add_argument('paths', nargs='*', help='NSP files or folders to search')
+    ap.add_argument('--romfs')
+    ap.add_argument('--emu-dir')
+    ap.add_argument('--keys')
+    ap.add_argument('--out')
+    ap.add_argument('--no-pause', action='store_true')
     args = ap.parse_args()
+    log = print
 
-    out = Path(args.out) if args.out else eden_dir() / 'load' / TITLE_ID / 'Arabic'
+    print(f'=== {MOD_NAME}: Well Dweller Arabic translation / تعريب ساكن البئر ===\n')
+    ok = False
+    try:
+        emus = emulator_dirs(args.emu_dir)
+        emu = emus[0] if emus else None
+        if emu:
+            log(f'Emulator folder: {emu}')
+        elif not args.out:
+            raise Fail('Could not find Eden. Run Eden once with your keys installed, '
+                       'or use --emu-dir / --out.')
+        out = Path(args.out) if args.out else emu / 'load' / TITLE_ID / MOD_NAME
 
-    with tempfile.TemporaryDirectory() as tmp:
-        tmp = Path(tmp)
-        if args.romfs:
-            src = Path(args.romfs)
-        else:
-            nsps = [Path(p) for p in args.nsps] or sorted({*HERE.glob('*.nsp'), *Path.cwd().glob('*.nsp')})
-            base, upd = classify_nsps(nsps)
-            if not base or not upd:
-                sys.exit('ERROR: need both the base game NSP and the v1.0.3 update NSP '
-                         f'(title {TITLE_ID} and {UPDATE_ID}).\n'
-                         'Pass them as arguments, put them next to install.py, or use --romfs.')
-            keys = Path(args.keys) if args.keys else eden_dir() / 'keys' / 'prod.keys'
-            if not keys.exists():
-                sys.exit(f'ERROR: prod.keys not found at {keys} (use --keys).')
-            src = extract_from_nsps(base, upd, keys, tmp)
+        with tempfile.TemporaryDirectory() as tmp:
+            if args.romfs:
+                src = Path(args.romfs)
+            else:
+                keys = Path(args.keys) if args.keys else (emu / 'keys' / 'prod.keys' if emu else None)
+                if not keys or not keys.exists():
+                    raise Fail('prod.keys not found (use --keys).')
+                log('Looking for Well Dweller ...')
+                extra = [(Path(p), True) for p in args.paths]
+                base, updates = find_game(emu, keys, extra, log)
+                if not base:
+                    raise Fail('the Well Dweller base game was not found.\n'
+                               '  Add the game to Eden, or put the NSP next to this program.')
+                if not updates:
+                    raise Fail(f'the Well Dweller v{GAME_VERSION} update was not found.\n'
+                               '  Install the update in Eden, or put the update NSP next to this program.')
+                src = extract_v103(base, updates, Path(tmp), log)
+            build_mod(src, out, log)
 
-        win, ini = src / 'game.win', src / 'translations.ini'
-        for p in (win, ini):
-            if not p.exists():
-                sys.exit(f'ERROR: {p} not found.')
-
-        print('Checking game version ...')
-        if sha256_file(win) != GAME_WIN_SHA256:
-            sys.exit(f'ERROR: game.win does not match Well Dweller v{GAME_VERSION}. '
-                     'Make sure the v1.0.3 update is used.')
-
-        import bsdiff4
-        print('Patching game.win (Arabic fonts) ...')
-        new_win = bsdiff4.patch(win.read_bytes(), find_data('patches/game.win.bsdiff').read_bytes())
-        if hashlib.sha256(new_win).hexdigest() != PATCHED_WIN_SHA256:
-            sys.exit('ERROR: patched game.win failed verification.')
-
-        print('Writing Arabic text into translations.ini ...')
-        arabic = json.loads(find_data('translation/arabic.json').read_text(encoding='utf-8'))
-        new_ini = translations.apply_arabic(ini.read_bytes(), arabic)
-
-        dst = out / 'romfs'
-        dst.mkdir(parents=True, exist_ok=True)
-        (dst / 'game.win').write_bytes(new_win)
-        (dst / 'translations.ini').write_bytes(new_ini)
-
-    print()
-    print(f'Done! Mod installed to: {out}')
-    print('In Eden: right-click Well Dweller > Properties > Add-Ons and make sure "Arabic" is checked')
-    print('(the v1.0.3 update must also be installed). In game: Options > Language > العربية')
+        print(f'\nDone! Installed to:\n  {out}\n')
+        print(f'1. In Eden, right-click Well Dweller > Properties > Add-Ons: make sure "{MOD_NAME}" is checked.')
+        print('2. Start the game: Options > Language > العربية')
+        ok = True
+    except Fail as e:
+        print(f'\nERROR: {e}')
+    except Exception as e:  # unexpected
+        print(f'\nUnexpected error: {e!r}')
+    if FROZEN and not args.no_pause:
+        input('\nPress Enter to close...')
+    return 0 if ok else 1
 
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main())

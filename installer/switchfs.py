@@ -65,6 +65,60 @@ class SubFile:
         return self.f.read(size)
 
 
+class MultiPartFile:
+    """A plain file, or an emulator-NAND split NCA (a folder containing 00, 01, ...)."""
+    def __init__(self, path):
+        import os
+        if os.path.isdir(path):
+            names = sorted(n for n in os.listdir(path) if n.isdigit())
+            parts = [os.path.join(path, n) for n in names]
+        else:
+            parts = [path]
+        self.parts = []
+        pos = 0
+        for p in parts:
+            size = os.path.getsize(p)
+            self.parts.append((pos, size, open(p, 'rb')))
+            pos += size
+        self.size = pos
+
+    def read_at(self, pos, size):
+        out = bytearray()
+        for start, psize, f in self.parts:
+            if size <= 0:
+                break
+            if start <= pos < start + psize:
+                n = min(size, start + psize - pos)
+                f.seek(pos - start)
+                out += f.read(n)
+                pos += n
+                size -= n
+        return bytes(out)
+
+
+def load_title_keys(paths, keys):
+    """Read title.keys-style files ("rightsid = key"). Returns {rights_id: [candidate decrypted keys]}.
+
+    Emulator-generated files hold the ticket's (encrypted) key, user dumps usually hold the
+    decrypted key - both interpretations are returned and verified later against the NCA.
+    """
+    out = {}
+    for p in paths:
+        try:
+            text = open(p, encoding='utf-8', errors='replace').read()
+        except OSError:
+            continue
+        for rid, val in re.findall(r'^\s*([0-9a-fA-F]{32})\s*=\s*([0-9a-fA-F]{32})\s*$', text, re.M):
+            rid = rid.lower()
+            raw = bytes.fromhex(val)
+            cands = out.setdefault(rid, [])
+            kek = keys.get('titlekek_%02x' % max(int(rid[-2:], 16) - 1, 0))
+            if kek:
+                cands.append(AES.new(kek, AES.MODE_ECB).decrypt(raw))
+            cands.append(raw)
+    return out
+
+
 # ---------------------------------------------------------------- NCA
 def _xts_decrypt(key, data, sector_size=0x200):
     out = bytearray()
@@ -98,6 +152,32 @@ class Nca:
         for i in range(4):
             s, e = struct.unpack_from('<II', hdr, 0x240 + i * 0x10)
             self.sections.append((s * 0x200, e * 0x200, hdr[0x400 + i * 0x200:0x600 + i * 0x200]))
+
+    @property
+    def is_update(self):
+        """True if the RomFS section is a patch (BKTR) over a base NCA."""
+        return self.sections[1][2][0x110:0x114] == b'BKTR'
+
+    def key_works(self, key):
+        """Verify a title key by decrypting the ExeFS (section 0) PFS0 magic."""
+        start, end, fsh = self.sections[0]
+        if end == 0 or fsh[3] != 2:  # needs HierarchicalSha256 ExeFS
+            return False
+        layer_count = struct.unpack_from('<I', fsh, 0x8 + 0x24)[0]
+        pfs_off = struct.unpack_from('<Q', fsh, 0x8 + 0x28 + (layer_count - 1) * 0x10)[0]
+        old = self.key
+        self.key = key
+        try:
+            return Section(self, 0).read(pfs_off, 4) == b'PFS0'
+        finally:
+            self.key = old
+
+    def set_key(self, candidates):
+        for k in candidates:
+            if self.key_works(k):
+                self.key = k
+                return True
+        return False
 
 
 class Section:
@@ -215,32 +295,28 @@ class Romfs:
 
 
 # ---------------------------------------------------------------- high level
-def open_program_nca(nsp_path, keys):
-    """Return the Program NCA inside an NSP, with its title key applied."""
+def program_ncas_in_nsp(nsp_path, keys):
+    """Yield (Nca, {rights_id: [titlekey]}) for each Program NCA inside an NSP."""
     pfs = Pfs0(nsp_path)
     tkeys = {}
     for name in pfs.files:
         if name.endswith('.tik'):
             rid, tk = ticket_titlekey(keys, pfs.read(name))
-            tkeys[rid] = tk
+            tkeys.setdefault(rid, []).append(tk)
     for name, (off, size) in pfs.files.items():
-        if not name.endswith('.nca') or name.endswith('.cnmt.nca'):
-            continue
-        nca = Nca(SubFile(pfs.f, off, size), keys)
-        if nca.content_type != Nca.CONTENT_PROGRAM:
-            continue
-        if nca.rights_id.strip('0'):
-            if nca.rights_id not in tkeys:
-                raise KeyError(f'{nsp_path}: no ticket for rights id {nca.rights_id}')
-            nca.key = tkeys[nca.rights_id]
-        else:
-            raise NotImplementedError('NCAs without rights ID (key-area encryption) are not supported')
-        return nca
-    raise ValueError(f'{nsp_path}: no Program NCA found')
+        if name.endswith('.nca') and not name.endswith('.cnmt.nca'):
+            nca = Nca(SubFile(pfs.f, off, size), keys)
+            if nca.content_type == Nca.CONTENT_PROGRAM:
+                yield nca, tkeys
 
 
-def open_patched_romfs(base_nsp, update_nsp, keys):
-    base = open_program_nca(base_nsp, keys)
-    upd = open_program_nca(update_nsp, keys)
+def apply_title_key(nca, *key_tables):
+    if not nca.rights_id.strip('0'):
+        raise NotImplementedError('NCAs without a rights ID (key-area encryption) are not supported')
+    cands = [k for table in key_tables for k in table.get(nca.rights_id, [])]
+    return nca.set_key(cands)
+
+
+def open_patched_romfs_ncas(base, upd):
     bs, us = Section(base, 1), Section(upd, 1)
     return Romfs(PatchedRomfsStorage(bs, us).read, us.fsh)

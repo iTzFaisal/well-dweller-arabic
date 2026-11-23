@@ -1,0 +1,40 @@
+# --- Game data: never commit (copyrighted, and users must use their own copy) ---
+*.nsp
+*.nsz
+*.xci
+*.xcz
+*.nca
+*.ncz
+*.tik
+*.cert
+*.cnmt.xml
+*.win
+romfs/
+exefs/
+WELDWLR-*/
+translations.ini
+translations - Copy.ini
+
+# --- Console keys: never commit ---
+*.keys
+prod.keys
+title.keys
+
+# --- Build output ---
+work/
+dist/
+*.bsdiff.tmp
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.python-version
+
+# --- OS / editors ---
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
